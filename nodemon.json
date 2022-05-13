@@ -1,0 +1,12 @@
+{
+    "delay": 2500,
+    "ext": "ts,tsx",
+    "ignore": ["build/*"],
+    "watch": [
+      "client/",
+      "server/"
+    ],
+    "execMap": {
+      "express": "npm run express"
+    }
+  }

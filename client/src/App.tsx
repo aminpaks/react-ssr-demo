@@ -1,11 +1,5 @@
 import React, { useEffect, useState, startTransition } from 'react';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-const SlowMessage = React.lazy(async () => {
-  await sleep(3000);
-  return import('./Message')
-});
+import SlowMessage from './Message';
 
 export function App() {
   const [clientMessage, setClientMessage] = useState('');
@@ -16,11 +10,22 @@ export function App() {
 
   return (
     <>
-      <h1>Hello World!</h1>
-      <h2>{clientMessage}</h2>
-      <React.Suspense fallback={<h3>loading...</h3>}>
+      <h1>SSR Demo + Data Fetching</h1>
+      <p>The first server render should take about 5 seconds to load the resource and cache it.</p>
+      <React.Suspense fallback={<h3>During this time you see this loading message...</h3>}>
         <SlowMessage />
       </React.Suspense>
+      <h2>{clientMessage}</h2>
     </>
-  )
+  );
+}
+
+export function Html({ children }: { children?: React.ReactElement }) {
+  return (
+    <html>
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  );
 }

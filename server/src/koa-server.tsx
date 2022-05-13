@@ -4,7 +4,7 @@ import serve from 'koa-static';
 
 import React from 'react';
 import * as ReactDOMServer from 'react-dom/server';
-import { App } from '../../client/src/App';
+import { App, Html } from '../../client/src/App';
 
 const app = new Koa();
 const router = new Router();
@@ -12,9 +12,12 @@ const router = new Router();
 router.get('/', (ctx: Context) => {
   let didError = false;
   return new Promise((resolve, reject) => {
-    const stream = ReactDOMServer.renderToPipeableStream(<div id="root"><App /></div>,
+    const stream = ReactDOMServer.renderToPipeableStream(
+      <Html>
+        <App />
+      </Html>,
       {
-        bootstrapScripts: ["app.js"],
+        bootstrapScripts: ['app.js'],
         onShellReady() {
           ctx.status = didError ? 500 : 200;
           ctx.set('Content-type', 'text/html');
@@ -29,8 +32,9 @@ router.get('/', (ctx: Context) => {
         onError(err) {
           didError = true;
           reject(err);
-        }
-      });
+        },
+      },
+    );
   })
 });
 

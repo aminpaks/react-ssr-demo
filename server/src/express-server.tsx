@@ -1,15 +1,19 @@
 import express from 'express';
 import React from 'react';
 import * as ReactDOMServer from 'react-dom/server';
-import { App } from '../../client/src/App';
+import {resource} from '../../client/src/message-resource';
+import {Html, App} from '../../client/src/App';
 
 const app = express();
 
 app.get('/', (_, res) => {
   let didError = false;
-  const stream = ReactDOMServer.renderToPipeableStream(<div id="root"><App /></div>,
+  const stream = ReactDOMServer.renderToPipeableStream(
+    <Html>
+      <App />
+    </Html>,
     {
-      bootstrapScripts: ["app.js"],
+      bootstrapScripts: ['app.js'],
       onShellReady() {
         res.statusCode = didError ? 500 : 200;
         res.setHeader('Content-type', 'text/html');
@@ -22,10 +26,42 @@ app.get('/', (_, res) => {
       onError(err) {
         didError = true;
         console.error(err);
-      }
-    });
+      },
+    },
+  );
 });
 
-app.use(express.static("./build"));
+app.post('/api/resources/:resourceId/invalidate', async (req, res) => {
+  const operation = 'invalidation';
+  res.set('Content-Type', 'application/json');
+
+  const resourceId = req.params['resourceId'];
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  switch (resourceId) {
+    case 'message': {
+      resource.invalidate();
+
+      return res.json({
+        resource: resourceId,
+        operation,
+        status: 'complete',
+        data: {},
+      });
+    }
+    default:
+      break;
+  }
+
+  return res.json({
+    resource: resourceId,
+    operation,
+    status: 'fail',
+    errors: [{message: 'Resource not found!'}],
+  });
+});
+
+app.use(express.static('./build'));
 
 app.listen(8000);
