@@ -2,6 +2,7 @@ import {createElement, useState} from 'react';
 
 export interface Resource<T> {
   value: T | null;
+  failure: Error | null;
   load(): ResourceData<T>;
   invalidate: () => void;
 }
@@ -13,17 +14,18 @@ export interface ResourceData<T> {
   useInvalidate: ReturnType<typeof buildUseInvalidateHook>;
 }
 
-export const buildResource = <T>(ms: number, value: T, resourceName: string): Resource<T> => {
-  const Serialized = () =>
+export const buildResource = <T>(getValue: () => Promise<T>, resourceName: string): Resource<T> => {
+  const getSerialized = (value?: T) => () =>
     createElement('div', {
       id: `data-${resourceName}`,
       style: {display: 'none'},
-      children: JSON.stringify(value),
+      children: JSON.stringify(value || {}),
     });
 
   const useInvalidate = buildUseInvalidateHook(resourceName);
   const resource: Resource<T> = {
-    value: null as T | null,
+    value: null,
+    failure: null,
     load: () => {
       // console.log('fetch', resource, cachedResult);
 
@@ -31,7 +33,7 @@ export const buildResource = <T>(ms: number, value: T, resourceName: string): Re
         return {
           loading: false,
           data: resource.value,
-          Serialized,
+          Serialized: getSerialized(resource.value),
           useInvalidate,
         };
       }
@@ -44,7 +46,7 @@ export const buildResource = <T>(ms: number, value: T, resourceName: string): Re
             return {
               loading: false,
               data: parsedValue,
-              Serialized,
+              Serialized: getSerialized(parsedValue),
               useInvalidate,
             };
           }
@@ -53,18 +55,22 @@ export const buildResource = <T>(ms: number, value: T, resourceName: string): Re
 
       if (resource.value == null) {
         // console.log('called resource.fetch()', resource);
-        throw new Promise((resolve) => {
-          setTimeout(() => {
+        const suspender = getValue().then(
+          (value) => {
             resource.value = value;
-            resolve(null);
-          }, Number(ms));
-        }) as any;
+          },
+          (error) => {
+            resource.failure = error;
+          },
+        );
+
+        throw suspender;
       }
 
       return {
         data: null,
         loading: true,
-        Serialized,
+        Serialized: getSerialized(),
         useInvalidate,
       };
     },
